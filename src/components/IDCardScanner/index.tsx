@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Button, message, Spin, QRCode } from 'antd';
-import { CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Button, message, Spin, QRCode, Modal } from 'antd';
+import { CameraOutlined, QrcodeOutlined, EyeOutlined } from '@ant-design/icons';
 
 interface Point {
   x: number;
@@ -21,14 +21,15 @@ const IDCardScanner: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const animationFrameId = useRef<number | null>(null);
 
-  // Rectangle guideline dimensions (relative to video frame size)
+  // Adjusted rectangle guideline dimensions (relative to video frame size)
   const guideline: Rectangle = {
-    topLeft: { x: 0.2, y: 0.2 },
-    topRight: { x: 0.8, y: 0.2 },
-    bottomRight: { x: 0.8, y: 0.8 },
-    bottomLeft: { x: 0.2, y: 0.8 }
+    topLeft: { x: 0.1, y: 0.3 },
+    topRight: { x: 0.9, y: 0.3 },
+    bottomRight: { x: 0.9, y: 0.7 },
+    bottomLeft: { x: 0.1, y: 0.7 }
   };
 
   useEffect(() => {
@@ -184,13 +185,12 @@ const IDCardScanner: React.FC = () => {
     }
   };
 
-  const downloadImage = () => {
-    if (capturedImage) {
-      const link = document.createElement('a');
-      link.href = capturedImage;
-      link.download = 'captured_id_card.png';
-      link.click();
-    }
+  const showPreview = () => {
+    setIsPreviewVisible(true);
+  };
+
+  const hidePreview = () => {
+    setIsPreviewVisible(false);
   };
 
   // Draw guideline on video
@@ -306,12 +306,13 @@ const IDCardScanner: React.FC = () => {
 
       {isMobileView ? (
         <>
-          <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
+          <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4" style={{ height: '80vh' }}>
             <video
               ref={videoRef}
               className="absolute inset-0 w-full h-full object-cover"
               autoPlay
               playsInline
+              style={{ width: '100%', height: '100%' }} // Adjust video size
             />
             <canvas
               ref={canvasRef}
@@ -359,17 +360,26 @@ const IDCardScanner: React.FC = () => {
                 {capturedImage && (
                   <Button
                     type="primary"
-                    icon={<DownloadOutlined />}
+                    icon={<EyeOutlined />}
                     size="large"
-                    onClick={downloadImage}
+                    onClick={showPreview}
                     className="bg-purple-500"
                   >
-                    Download Image
+                    Preview Image
                   </Button>
                 )}
               </>
             )}
           </div>
+
+          <Modal
+            visible={isPreviewVisible}
+            onCancel={hidePreview}
+            footer={null}
+            centered
+          >
+            <img src={capturedImage || ''} alt="Captured ID" style={{ width: '100%' }} />
+          </Modal>
         </>
       ) : (
         <div className="flex flex-col items-center justify-center p-4">
