@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Button, message, Spin } from 'antd';
-import { CameraOutlined } from '@ant-design/icons';
+import { Button, message, Spin, QRCode } from 'antd';
+import { CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
 
 interface Point {
   x: number;
@@ -19,6 +19,7 @@ const IDCardScanner: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
   const animationFrameId = useRef<number | null>(null);
 
   // Rectangle guideline dimensions (relative to video frame size)
@@ -28,6 +29,25 @@ const IDCardScanner: React.FC = () => {
     bottomRight: { x: 0.8, y: 0.8 },
     bottomLeft: { x: 0.2, y: 0.8 }
   };
+
+  useEffect(() => {
+    // Detect if the viewport width is less than a certain threshold (e.g., 768px for mobile view)
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    // Initial check
+    handleResize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
 
   const startCamera = useCallback(async () => {
     try {
@@ -272,59 +292,72 @@ const IDCardScanner: React.FC = () => {
     <div className="flex flex-col items-center justify-center p-4 w-full max-w-lg mx-auto">
       <h1 className="text-2xl font-bold mb-4">ID Card Scanner</h1>
 
-      <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          autoPlay
-          playsInline
-        />
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none"
-        />
-        {isProcessing && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <Spin size="large" tip="Processing..." />
+      {isMobileView ? (
+        <>
+          <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
+            <video
+              ref={videoRef}
+              className="absolute inset-0 w-full h-full object-cover"
+              autoPlay
+              playsInline
+            />
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+            />
+            {isProcessing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                <Spin size="large" tip="Processing..." />
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="w-full flex justify-center gap-4">
-        {!isCapturing ? (
-          <Button
-            type="primary"
-            icon={<CameraOutlined />}
-            size="large"
-            onClick={startCamera}
-            className="bg-blue-500"
-          >
-            Start Camera
-          </Button>
-        ) : (
-          <>
-            <Button
-              type="primary"
-              danger
-              size="large"
-              onClick={stopCamera}
-              disabled={isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              icon={<CameraOutlined />}
-              size="large"
-              onClick={captureImage}
-              disabled={isProcessing}
-              className="bg-green-500"
-            >
-              Capture ID Card
-            </Button>
-          </>
-        )}
-      </div>
+          <div className="w-full flex justify-center gap-4">
+            {!isCapturing ? (
+              <Button
+                type="primary"
+                icon={<CameraOutlined />}
+                size="large"
+                onClick={startCamera}
+                className="bg-blue-500"
+              >
+                Start Camera
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="primary"
+                  danger
+                  size="large"
+                  onClick={stopCamera}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<CameraOutlined />}
+                  size="large"
+                  onClick={captureImage}
+                  disabled={isProcessing}
+                  className="bg-green-500"
+                >
+                  Capture ID Card
+                </Button>
+              </>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center p-4">
+          <QRCode
+            value="https://example.com/id-card-scanner" // Replace with your actual URL
+            size={200}
+            icon={<QrcodeOutlined />}
+          />
+          <p className="mt-4 text-center">Scan this QR code with your mobile device to use the ID Card Scanner.</p>
+        </div>
+      )}
     </div>
   );
 };
