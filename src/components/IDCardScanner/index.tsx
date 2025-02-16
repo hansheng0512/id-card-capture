@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Button, message, Spin, QRCode } from 'antd';
-import { CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
+import { CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
 
 interface Point {
   x: number;
@@ -20,6 +20,7 @@ const IDCardScanner: React.FC = () => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const animationFrameId = useRef<number | null>(null);
 
   // Rectangle guideline dimensions (relative to video frame size)
@@ -47,7 +48,6 @@ const IDCardScanner: React.FC = () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
 
   const startCamera = useCallback(async () => {
     try {
@@ -147,6 +147,9 @@ const IDCardScanner: React.FC = () => {
         // Convert to base64
         const base64Image = croppedCanvas.toDataURL('image/png');
 
+        // Save the base64 image to state
+        setCapturedImage(base64Image);
+
         // Send to backend
         sendToBackend(base64Image);
       }
@@ -178,6 +181,15 @@ const IDCardScanner: React.FC = () => {
       console.error('Error sending image:', error);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const downloadImage = () => {
+    if (capturedImage) {
+      const link = document.createElement('a');
+      link.href = capturedImage;
+      link.download = 'captured_id_card.png';
+      link.click();
     }
   };
 
@@ -344,6 +356,17 @@ const IDCardScanner: React.FC = () => {
                 >
                   Capture ID Card
                 </Button>
+                {capturedImage && (
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    size="large"
+                    onClick={downloadImage}
+                    className="bg-purple-500"
+                  >
+                    Download Image
+                  </Button>
+                )}
               </>
             )}
           </div>
