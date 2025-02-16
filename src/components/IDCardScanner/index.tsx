@@ -50,11 +50,36 @@ const IDCardScanner: React.FC = () => {
     };
   }, []);
 
+  const sharpenImage = (canvas: HTMLCanvasElement, context: CanvasRenderingContext2D) => {
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 4; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      // Simple sharpening algorithm
+      data[i] = r + (r - data[i - 4]) * 0.5;
+      data[i + 1] = g + (g - data[i - 3]) * 0.5;
+      data[i + 2] = b + (b - data[i - 2]) * 0.5;
+    }
+
+    context.putImageData(imageData, 0, 0);
+  };
+
   const startCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 }, // Request high resolution
+          height: { ideal: 720 },
+          focusMode: 'continuous' // Enable auto-focus if supported
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -70,6 +95,7 @@ const IDCardScanner: React.FC = () => {
       console.error('Error accessing camera:', err);
     }
   }, []);
+
 
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -104,6 +130,9 @@ const IDCardScanner: React.FC = () => {
 
       // Draw the current frame from video to canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Apply sharpening
+      sharpenImage(canvas, context);
 
       // Calculate guideline rectangle in actual pixel coordinates
       const actualGuideline: Rectangle = {
